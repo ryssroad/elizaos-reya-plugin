@@ -5,10 +5,10 @@ import {
     type Memory,
     type State,
     elizaLogger,
-    composePrompt,
-    ModelType,
+    parseKeyValueXml,
     type HandlerCallback,
     type Content,
+    ModelType,
 } from "@elizaos/core";
 import { z } from "zod";
 
@@ -149,28 +149,57 @@ export const getPricesAction: Action = {
                 currentState = (await runtime.composeState(message)) as State;
             }
 
-            // Extract price query from message 
-            elizaLogger.info("Processing price query from message...");
-            const text = message.content.text.toLowerCase();
-            let symbol = "";
+            // Extract price query using AI
+            elizaLogger.info("Using AI to extract cryptocurrency from message...");
             
-            // Simple symbol extraction
-            if (text.includes("hype")) symbol = "HYPE";
-            else if (text.includes("btc") || text.includes("bitcoin")) symbol = "BTC";
-            else if (text.includes("eth") || text.includes("ethereum")) symbol = "ETH";
-            else if (text.includes("sol") || text.includes("solana")) symbol = "SOL";
-            else if (text.includes("usdc")) symbol = "USDC";
-            else if (text.includes("usdt")) symbol = "USDT";
-            else if (text.includes("avax") || text.includes("avalanche")) symbol = "AVAX";
-            else if (text.includes("doge") || text.includes("dogecoin")) symbol = "DOGE";
-            else if (text.includes("ada") || text.includes("cardano")) symbol = "ADA";
-            else if (text.includes("dot") || text.includes("polkadot")) symbol = "DOT";
-            else if (text.includes("link") || text.includes("chainlink")) symbol = "LINK";
-            else if (text.includes("matic") || text.includes("polygon")) symbol = "MATIC";
-            else if (text.includes("atom") || text.includes("cosmos")) symbol = "ATOM";
-            else if (text.includes("rusd") || text.includes("reya")) symbol = "rUSD";
+            const extractionPrompt = `
+You are a cryptocurrency symbol extraction expert. Your task is to identify ANY cryptocurrency symbol or token mentioned in user messages.
+
+EXTRACTION RULES:
+1. Look for ANY 2-5 character uppercase combinations (BTC, ETH, UNI, SOL, AAVE, etc.)
+2. Look for common cryptocurrency names (Bitcoin, Ethereum, Uniswap, etc.)
+3. Look for mixed case tokens (Uni, Btc, Eth, etc.) - normalize to uppercase
+4. If MULTIPLE symbols found, extract the FIRST ONE mentioned
+5. If NO specific symbol found, use type="general"
+
+EXAMPLES:
+- "check UNI price" → symbol: UNI, type: specific
+- "BTC price please" → symbol: BTC, type: specific  
+- "what is Bitcoin worth" → symbol: BTC, type: specific
+- "Ethereum price on Reya" → symbol: ETH, type: specific
+- "цена HYPE" → symbol: HYPE, type: specific
+- "show me prices" → symbol: "", type: general
+- "market overview" → symbol: "", type: general
+
+COMMON MAPPINGS:
+Bitcoin/BTC → BTC | Ethereum/ETH → ETH | Solana/SOL → SOL
+Uniswap/UNI → UNI | Aave/AAVE → AAVE | Chainlink/LINK → LINK
+HYPE → HYPE | USDC → USDC | USDT → USDT
+
+FORMAT: Return ONLY this XML structure:
+<response>
+  <symbol>EXTRACTED_SYMBOL_OR_EMPTY</symbol>
+  <type>specific_or_general</type>
+</response>
+
+USER MESSAGE: "${message.content.text}"
+
+EXTRACT NOW:`;
+
+            const llmResponse = await runtime.useModel(ModelType.TEXT_SMALL, {
+                prompt: extractionPrompt,
+            });
+
+            elizaLogger.info("LLM response:", llmResponse);
             
-            elizaLogger.info("Extracted symbol:", symbol);
+            // Parse the XML response
+            const extractedData = parseKeyValueXml(llmResponse);
+            elizaLogger.info("Extracted data:", extractedData);
+            
+            const symbol = extractedData.symbol || "";
+            const queryType = extractedData.type || "general";
+            
+            elizaLogger.info("Extracted symbol:", symbol, "Type:", queryType);
             
             const priceService = await initPriceService(runtime);
             const marketService = await initMarketService(runtime);
@@ -180,12 +209,56 @@ export const getPricesAction: Action = {
             
             let responseText = "";
             
-            if (symbol) {
-                // Find specific asset price
+            if (symbol && queryType === "specific") {
+                // Find specific asset price using fuzzy matching
                 const assetSymbol = symbol.toUpperCase();
-                const assetMarket = markets.find(m => 
-                    m.ticker.toUpperCase().includes(assetSymbol)
-                );
+                elizaLogger.info("🔍 Searching for market with symbol:", assetSymbol);
+                
+                // Log available markets for debugging
+                elizaLogger.info("📋 Available markets tickers:", markets.map(m => m.ticker).join(', '));
+                
+                // Try multiple matching strategies
+                let assetMarket = null;
+                
+                // 1. Exact ticker match (e.g., "UNI-rUSD")
+                assetMarket = markets.find(m => m.ticker.toUpperCase() === assetSymbol);
+                elizaLogger.info(`1️⃣ Exact ticker match for "${assetSymbol}":`, assetMarket?.ticker || "❌ Not found");
+                
+                // 2. Ticker starts with symbol (e.g., "UNI" matches "UNI-rUSD")
+                if (!assetMarket) {
+                    assetMarket = markets.find(m => 
+                        m.ticker.toUpperCase().startsWith(assetSymbol + '-') || 
+                        m.ticker.toUpperCase() === assetSymbol
+                    );
+                    elizaLogger.info(`2️⃣ Ticker starts with "${assetSymbol}":`, assetMarket?.ticker || "❌ Not found");
+                }
+                
+                // 3. Ticker contains symbol (fuzzy match)
+                if (!assetMarket) {
+                    assetMarket = markets.find(m => 
+                        m.ticker.toUpperCase().includes(assetSymbol)
+                    );
+                    elizaLogger.info(`3️⃣ Ticker contains "${assetSymbol}":`, assetMarket?.ticker || "❌ Not found");
+                }
+                
+                // 4. Base asset match 
+                if (!assetMarket) {
+                    assetMarket = markets.find(m => 
+                        m.baseAsset && m.baseAsset.toUpperCase() === assetSymbol
+                    );
+                    elizaLogger.info(`4️⃣ Base asset match for "${assetSymbol}":`, assetMarket?.ticker || "❌ Not found");
+                }
+                
+                // 5. Try partial matches on ticker components
+                if (!assetMarket) {
+                    assetMarket = markets.find(m => {
+                        const tickerParts = m.ticker.toUpperCase().split('-');
+                        return tickerParts.some(part => part === assetSymbol || part.includes(assetSymbol));
+                    });
+                    elizaLogger.info(`5️⃣ Ticker component match for "${assetSymbol}":`, assetMarket?.ticker || "❌ Not found");
+                }
+                
+                elizaLogger.info("🎯 Final selected market:", assetMarket ? assetMarket.ticker : "❌ No matches found");
                 
                 if (assetMarket) {
                     const assetPrice = await priceService.getPriceByMarketId(parseInt(assetMarket.id));
@@ -203,7 +276,18 @@ The mark price is what you'll trade at, while oracle and pool prices show market
                         responseText = `I found the ${assetMarket.ticker} market but couldn't get the current price. Please try again.`;
                     }
                 } else {
-                    responseText = `I couldn't find a ${assetSymbol} market on Reya Network. Available major pairs include BTC-rUSD, ETH-rUSD, and other perpetuals.`;
+                    // Show available similar markets
+                    const availableMarkets = markets
+                        .filter(m => m.isActive)
+                        .slice(0, 10)
+                        .map(m => m.ticker)
+                        .join(', ');
+                    
+                    responseText = `I couldn't find a ${assetSymbol} market on Reya Network. 
+
+Available markets include: ${availableMarkets}
+
+Try asking for one of these specific markets or ask for "general prices" to see all available markets.`;
                 }
             } else {
                 // General price overview

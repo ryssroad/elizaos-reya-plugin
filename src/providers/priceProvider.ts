@@ -88,7 +88,7 @@ export class ReyaPriceService {
             return 'N/A';
         }
         
-        const num = typeof price === 'string'
+        let num = typeof price === 'string'
             ? parseFloat(price)
             : typeof price === 'number'
                 ? price
@@ -98,21 +98,51 @@ export class ReyaPriceService {
             return 'N/A';
         }
         
-        if (num >= 1e18) {
-            // For very large numbers (likely in wei), convert to readable format
-            return (num / 1e18).toFixed(2);
+        // Handle wei conversion for very large numbers
+        // If the number is suspiciously large (>1e15) it's likely in wei format
+        if (num >= 1e15) {
+            // Convert from wei to readable format
+            num = num / 1e18;
+            
+            // If after wei conversion we still have a very large number, it might be a different format
+            if (num >= 1e12) {
+                return 'N/A'; // Skip obviously wrong values
+            }
         }
         
-        // Ensure we have a valid finite number before calling toLocaleString
-        const validNum = Number(num);
-        if (!Number.isFinite(validNum)) {
+        // Ensure we have a valid finite number before formatting
+        if (!Number.isFinite(num)) {
             return 'N/A';
         }
         
-        return validNum.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 8,
-        });
+        // Format based on price magnitude
+        if (num >= 1000) {
+            // Large prices: show 2 decimal places
+            return num.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            });
+        } else if (num >= 1) {
+            // Prices >= $1: show up to 4 decimal places
+            return num.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 4,
+            });
+        } else if (num >= 0.01) {
+            // Prices >= $0.01: show up to 6 decimal places
+            return num.toLocaleString(undefined, {
+                minimumFractionDigits: 4,
+                maximumFractionDigits: 6,
+            });
+        } else if (num > 0) {
+            // Small prices: show up to 8 decimal places
+            return num.toLocaleString(undefined, {
+                minimumFractionDigits: 6,
+                maximumFractionDigits: 8,
+            });
+        } else {
+            return '0.00';
+        }
     }
 
     async getPricesSummary(): Promise<{
