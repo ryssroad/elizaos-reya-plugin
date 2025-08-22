@@ -1,0 +1,75 @@
+{
+  "name": "elizaos-plugin-reya",
+  "version": "0.1.4",
+  "description": "ElizaOS plugin for Reya Network DEX - provides real-time market data, price information, and asset details",
+  "type": "module",
+  "author": "ElizaOS Community",
+  "license": "MIT",
+  "keywords": [
+    "elizaos",
+    "plugin",
+    "reya-network",
+    "dex",
+    "defi",
+    "trading",
+    "cryptocurrency",
+    "market-data",
+    "blockchain"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elizaos/eliza.git",
+    "directory": "plugins/plugin-reya"
+  },
+  "bugs": {
+    "url": "https://github.com/elizaos/eliza/issues"
+  },
+  "homepage": "https://github.com/elizaos/eliza#readme",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "INTEGRATION.md"
+  ],
+  "dependencies": {
+    "@types/uuid": "^10.0.0",
+    "node-cache": "5.1.2",
+    "uuid": "^11.1.0"
+  },
+  "scripts": {
+    "build": "tsup --format esm --dts",
+    "test": "node --loader ts-node/esm src/tests/index.ts",
+    "test:api": "node --loader ts-node/esm -e \"import('./src/tests/index.js').then(m => m.default || m)\""
+  },
+  "peerDependencies": {
+    "@elizaos/core": "*",
+    "whatwg-url": "7.1.0"
+  },
+  "devDependencies": {
+    "@elizaos/cli": "^1.4.4",
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.0.0"
+  },
+  "agentConfig": {
+    "pluginType": "elizaos:client:1.0.0",
+    "pluginParameters": {
+      "REYA_API_BASE_URL": {
+        "type": "string",
+        "default": "https://api.reya.xyz",
+        "description": "Reya Network API base URL"
+      }
+    }
+  }
+}
