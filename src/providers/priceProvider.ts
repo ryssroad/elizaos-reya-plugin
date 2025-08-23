@@ -189,6 +189,23 @@ export const reyaPriceProvider: Provider = {
         _message: Memory,
         state?: State
     ): Promise<ReyaProviderResponse> => {
+        // Check if message is related to prices before making API calls
+        const messageText = _message.content?.text?.toLowerCase() || "";
+        const priceKeywords = [
+            'price', 'cost', 'value', 'worth', 'usd', 'dollar', '$',
+            'expensive', 'cheap', 'rate', 'quote', 'current', 'latest',
+            'how much', 'what\'s', 'whats', 'trading at', 'market price'
+        ];
+        
+        const isPriceRelated = priceKeywords.some(keyword => 
+            messageText.includes(keyword)
+        );
+        
+        if (!isPriceRelated) {
+            elizaLogger.debug("Message not price-related, skipping price provider");
+            return { message: "" }; // Return empty response
+        }
+        
         console.log("🚨 REYA PRICE PROVIDER CALLED! 🚨");
         elizaLogger.info("🚨 REYA PRICE PROVIDER STARTED");
         

@@ -123,6 +123,23 @@ export const reyaMarketProvider: Provider = {
         _message: Memory,
         state?: State
     ): Promise<ReyaProviderResponse> => {
+        // Check if message is related to markets/trading before making API calls
+        const messageText = _message.content?.text?.toLowerCase() || "";
+        const marketKeywords = [
+            'market', 'trading', 'trade', 'volume', 'price', 'ticker', 
+            'perpetual', 'futures', 'dex', 'exchange', 'reya', 'liquidity',
+            'position', 'leverage', 'margin', 'asset', 'pair'
+        ];
+        
+        const isMarketRelated = marketKeywords.some(keyword => 
+            messageText.includes(keyword)
+        );
+        
+        if (!isMarketRelated) {
+            elizaLogger.debug("Message not market-related, skipping market provider");
+            return { message: "" }; // Return empty response
+        }
+        
         console.log("🚨 REYA MARKET PROVIDER CALLED! 🚨");
         elizaLogger.info("🚨 REYA MARKET PROVIDER STARTED");
         

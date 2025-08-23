@@ -1,6 +1,6 @@
 {
   "name": "elizaos-plugin-reya",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "ElizaOS plugin for Reya Network DEX - provides real-time market data, price information, and asset details",
   "type": "module",
   "author": "ElizaOS Community",
