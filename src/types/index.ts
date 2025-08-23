@@ -57,13 +57,7 @@ export interface PricesResponse {
     [assetPairId: string]: Price;
 }
 
-export interface CandleData {
-    t: number[];  // timestamps
-    o: number[];  // open prices
-    h: number[];  // high prices
-    l: number[];  // low prices
-    c: number[];  // close prices
-}
+// CandleData interface removed - endpoint returns 404
 
 export interface FeeTierParameter {
     tier_id: string;

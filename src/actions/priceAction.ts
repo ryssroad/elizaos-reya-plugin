@@ -263,7 +263,28 @@ EXTRACT NOW:`;
                 if (assetMarket) {
                     const assetPrice = await priceService.getPriceByMarketId(parseInt(assetMarket.id));
                     if (assetPrice) {
-                        responseText = `Current ${assetSymbol} price on Reya Network:
+                        try {
+                            // Also get market data for 24h changes
+                            const marketData = await marketService.getMarketData(assetMarket.id);
+                            const priceChange24h = marketData.priceChange24HPercentage || 0;
+                            const priceChangeFormatted = priceChange24h.toFixed(2);
+                            const priceChangeEmoji = priceChange24h >= 0 ? "📈" : "📉";
+                            const priceChangeText = priceChange24h >= 0 ? "+" : "";
+                            
+                            responseText = `Current ${assetSymbol} price on Reya Network:
+
+**${assetMarket.ticker}**
+• Mark Price: $${priceService.formatPrice(assetPrice.price)}
+• Oracle Price: $${priceService.formatPrice(assetPrice.oraclePrice)}
+• Pool Price: $${priceService.formatPrice(assetPrice.poolPrice)}
+${priceChangeEmoji} **24h Change**: ${priceChangeText}${priceChangeFormatted}%
+• Last Update: ${new Date(assetPrice.updatedAt).toLocaleTimeString()}
+
+The mark price is what you'll trade at, while oracle and pool prices show market dynamics.`;
+                        } catch (marketDataError) {
+                            elizaLogger.warn("Could not fetch 24h change data:", marketDataError);
+                            // Fallback without 24h change
+                            responseText = `Current ${assetSymbol} price on Reya Network:
 
 **${assetMarket.ticker}**
 • Mark Price: $${priceService.formatPrice(assetPrice.price)}
@@ -272,22 +293,46 @@ EXTRACT NOW:`;
 • Last Update: ${new Date(assetPrice.updatedAt).toLocaleTimeString()}
 
 The mark price is what you'll trade at, while oracle and pool prices show market dynamics.`;
+                        }
                     } else {
                         responseText = `I found the ${assetMarket.ticker} market but couldn't get the current price. Please try again.`;
                     }
                 } else {
-                    // Show available similar markets
-                    const availableMarkets = markets
-                        .filter(m => m.isActive)
-                        .slice(0, 10)
+                    elizaLogger.info(`❌ ${assetSymbol} not found. Analyzing available markets...`);
+                    
+                    // Show available similar markets with detailed analysis
+                    const activeMarkets = markets.filter(m => m.isActive);
+                    const similarMarkets = activeMarkets.filter(m => {
+                        const ticker = m.ticker.toUpperCase();
+                        const symbol = assetSymbol.toUpperCase();
+                        
+                        // Check for partial matches
+                        return ticker.includes(symbol.substring(0, 2)) || 
+                               ticker.includes(symbol.substring(0, 3)) ||
+                               symbol.includes(ticker.split('-')[0].substring(0, 2));
+                    });
+                    
+                    elizaLogger.info(`🔍 Found ${similarMarkets.length} similar markets:`, 
+                        similarMarkets.map(m => m.ticker).join(', '));
+                    
+                    const availableMarkets = activeMarkets
+                        .slice(0, 15)
                         .map(m => m.ticker)
                         .join(', ');
                     
-                    responseText = `I couldn't find a ${assetSymbol} market on Reya Network. 
+                    let suggestionText = "";
+                    if (similarMarkets.length > 0) {
+                        suggestionText = `\n\n🤔 **Did you mean one of these?**\n${similarMarkets.map(m => m.ticker).join(', ')}\n`;
+                    }
+                    
+                    responseText = `I couldn't find a **${assetSymbol}** market on Reya Network. ${suggestionText}
 
-Available markets include: ${availableMarkets}
+📋 **Available markets** (first 15): ${availableMarkets}
 
-Try asking for one of these specific markets or ask for "general prices" to see all available markets.`;
+💡 **Tips**: 
+- Try asking for "market overview" to see all markets
+- Check if the token was just added (cache updates every 30 seconds)
+- Use exact ticker format like "BTC-rUSD"`;
                 }
             } else {
                 // General price overview

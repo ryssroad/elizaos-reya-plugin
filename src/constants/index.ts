@@ -7,16 +7,14 @@ export const API_ENDPOINTS = {
     ASSETS: "/api/trading/assets",
     PRICES: "/api/trading/prices",
     PRICE_BY_PAIR: (assetPairId: string) => `/api/trading/prices/${assetPairId}`,
-    CANDLES: (assetPairId: string, resolution: string) => `/candles/${assetPairId}/${resolution}`,
     FEE_TIER_PARAMETERS: "/api/trading/feeTierParameters",
     GLOBAL_FEE_PARAMETERS: "/api/trading/globalFeeParameters",
 } as const;
 
 export const CACHE_TTL = {
-    MARKETS: 300,        // 5 minutes
+    MARKETS: 30,         // 30 seconds for testing new tokens
     MARKET_DATA: 30,     // 30 seconds
-    ASSETS: 1800,        // 30 minutes
+    ASSETS: 30,          // 30 seconds for testing new tokens
     PRICES: 10,          // 10 seconds
-    CANDLES: 60,         // 1 minute
     FEE_PARAMETERS: 3600, // 1 hour
 } as const;

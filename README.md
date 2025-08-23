@@ -3,15 +3,27 @@
 [![npm version](https://badge.fury.io/js/elizaos-plugin-reya.svg)](https://badge.fury.io/js/elizaos-plugin-reya)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A comprehensive ElizaOS plugin for integrating with **Reya Network DEX**, providing real-time market data, price information, and asset details.
+A comprehensive ElizaOS plugin for integrating with **Reya Network DEX**, providing AI-powered market analysis, real-time price data, and intelligent trading insights.
 
-## ✨ Features
+## 🚀 Key Features
 
-- **Market Data**: Access to all markets, trading pairs, and market statistics
-- **Price Information**: Real-time pricing data with oracle and pool prices
-- **Asset Management**: Complete asset information and search capabilities
-- **Caching**: Intelligent caching system for optimal performance
-- **Error Handling**: Robust error handling and logging
+### 🤖 **AI-Powered Symbol Recognition**
+- **Universal Token Detection**: Extracts any cryptocurrency symbol from natural language queries
+- **Multi-Language Support**: Handles English and Russian queries seamlessly
+- **Fuzzy Matching**: Finds tokens even with partial or inexact names
+- **Smart Context Understanding**: Differentiates between price, volume, and market data requests
+
+### 📊 **Comprehensive Market Data**
+- **Real-time Prices**: Mark, oracle, and pool prices with 24h change indicators
+- **Trading Volumes**: 24-hour volume data with detailed market statistics
+- **Advanced Analytics**: Funding rates, open interest, and long/short bias analysis
+- **Market Intelligence**: Automatic market condition assessment (balanced/biased)
+
+### 💡 **Intelligent Features**
+- **Natural Language Processing**: Handles queries like "what's BTC price?" or "объем торгов SOL"
+- **Dynamic Price Formatting**: Correctly displays both large prices ($50,000) and small tokens ($0.0001)
+- **Contextual Responses**: Provides different levels of detail based on user intent
+- **Error Recovery**: Graceful fallbacks with helpful suggestions when tokens aren't found
 
 ## 📦 Installation
 
@@ -64,22 +76,96 @@ const marketService = new ReyaMarketService("https://api.reya.xyz");
 const markets = await marketService.getMarkets();
 ```
 
+## 🎯 **Example Interactions**
+
+### 💰 Price Queries
+```
+User: "What's the current BTC price?"
+Agent: Current BTC price on Reya Network:
+        **BTC-rUSD**
+        • Mark Price: $43,250.00
+        • Oracle Price: $43,251.12
+        • Pool Price: $43,249.87
+        📈 **24h Change**: +2.15%
+        • Last Update: 3:45:22 PM
+```
+
+### 📊 Volume & Market Data
+```
+User: "ETH volume today"
+Agent: **ETH-rUSD - 24h Trading Volume:**
+        💰 **Volume**: $12,345,678
+        📈 **24h Change**: +1.87%
+        📊 **Open Interest**: 1,234.56
+        🔵 **Funding Rate**: 0.0125%
+```
+
+### 🔍 Advanced Market Analysis  
+```
+User: "SOL market data"
+Agent: **SOL-rUSD - Detailed Market Data:**
+        💰 **24h Volume**: $8,765,432
+        📈 **24h Price Change**: +3.42%
+        📊 **Open Interest**: 987.65 (Long: 60%, Short: 40%)
+        🔵 **Funding Rate**: 0.0087% (paying longs)
+        🎯 **Max Leverage**: 25x
+        
+        **Market Activity Analysis:**
+        • Long-biased market
+        • Low funding rate shows balanced market
+```
+
+### 🌐 Multi-Language Support
+```
+User: "цена HYPE на рейе"
+Agent: Current HYPE price on Reya Network: [detailed price data]
+
+User: "объем торгов за сутки BNB"  
+Agent: **BNB-rUSD - 24h Trading Volume:** [volume statistics]
+```
+
+## 🛠️ Available Actions
+
+### 1. **GET_REYA_PRICES** - Universal Price Lookup
+- **Triggers**: "price", "cost", "worth", "цена", "стоимость"
+- **Capabilities**: 
+  - AI-powered symbol extraction from any query
+  - Real-time price data with 24h changes
+  - Oracle, mark, and pool price comparison
+  - Support for any cryptocurrency on Reya DEX
+
+### 2. **GET_REYA_MARKETS** - Volume & Market Intelligence
+- **Triggers**: "volume", "trading", "market", "объем", "торги"  
+- **Capabilities**:
+  - 24-hour trading volume analysis
+  - Funding rate monitoring
+  - Open interest and long/short bias tracking
+  - Market condition assessment
+  - Top volume markets overview
+
+### 3. **GET_REYA_ASSETS** - Asset Information
+- **Triggers**: "asset", "token", "contract"
+- **Capabilities**:
+  - Complete asset specifications
+  - Contract address lookup
+  - Asset search functionality
+
 ### Available Providers
 
 1. **Market Provider** (`reyaMarketProvider`)
-   - Market listings and data
-   - Trading volume information
-   - Market statistics and trends
+   - Real-time market data and statistics
+   - Detailed market analysis with funding rates
+   - Advanced open interest tracking
 
 2. **Price Provider** (`reyaPriceProvider`)
-   - Current asset prices
-   - Oracle vs pool price comparisons
-   - Price formatting and analysis
+   - Multi-source price data (mark, oracle, pool)
+   - Smart price formatting for any token size
+   - 24-hour price change tracking
 
 3. **Asset Provider** (`reyaAssetProvider`)
-   - Asset information and specifications
-   - Asset search functionality
-   - Contract address details
+   - Comprehensive asset information
+   - Contract address resolution
+   - Asset search capabilities
 
 ## Testing
 
@@ -96,19 +182,26 @@ The test suite includes:
 - Asset service tests
 - Caching mechanism tests
 
-## API Endpoints Used
+## 🔗 API Endpoints Used
 
-- `GET /api/trading/markets` - Market listings
-- `GET /api/trading/markets/data` - Market data
-- `GET /api/trading/prices` - Price information
-- `GET /api/trading/assets` - Asset information
+- `GET /api/trading/markets` - Market listings and basic information
+- `GET /api/trading/markets/data` - Aggregated market data and statistics  
+- `GET /api/trading/market/:id/data` - Detailed individual market data
+- `GET /api/trading/prices` - Real-time price information
+- `GET /api/trading/assets` - Asset information and specifications
 
-## Caching Strategy
+## ⚡ Optimized Caching Strategy
 
-- **Markets**: 5 minutes TTL
-- **Market Data**: 30 seconds TTL
-- **Assets**: 30 minutes TTL
-- **Prices**: 10 seconds TTL
+- **Markets**: 30 seconds TTL (fast new token detection)
+- **Market Data**: 30 seconds TTL (real-time trading data)
+- **Assets**: 30 seconds TTL (dynamic asset discovery)
+- **Prices**: 10 seconds TTL (near real-time pricing)
+- **Fee Parameters**: 1 hour TTL (stable configuration data)
+
+**Smart Caching Benefits:**
+- Reduced API calls while maintaining data freshness
+- Fast response times for frequently requested data
+- Automatic cache invalidation for optimal performance
 
 ## Error Handling
 

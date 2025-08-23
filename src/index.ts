@@ -31,7 +31,6 @@ export type {
     MarketData,
     Asset,
     Price,
-    CandleData,
     FeeTierParameter,
     GlobalFeeParameters,
     ReyaApiResponse,
