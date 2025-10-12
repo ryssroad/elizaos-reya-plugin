@@ -2,6 +2,8 @@ import { Plugin } from "@elizaos/core";
 import { reyaMarketProvider } from "./providers/marketProvider.js";
 import { reyaPriceProvider } from "./providers/priceProvider.js";
 import { reyaAssetProvider } from "./providers/assetProvider.js";
+import { smartDispatchProvider } from "./providers/dispatchProvider.js";
+import { smartDispatchAction } from "./actions/smartDispatchAction.js";
 import { getMarketsAction } from "./actions/marketAction.js";
 import { getPricesAction } from "./actions/priceAction.js";
 import { getAssetsAction } from "./actions/assetAction.js";
@@ -10,6 +12,8 @@ export const reyaPlugin: Plugin = {
     name: "reya",
     description: "Reya Network Plugin for Eliza - provides market data, price information, and asset details from Reya Network DEX",
     providers: [
+        // Run Smart Dispatch first to populate state flags
+        smartDispatchProvider,
         reyaMarketProvider,
         reyaPriceProvider,
         reyaAssetProvider
@@ -17,6 +21,7 @@ export const reyaPlugin: Plugin = {
     evaluators: [],
     services: [],
     actions: [
+        smartDispatchAction,  // Smart dispatcher must be first
         getMarketsAction,
         getPricesAction,  
         getAssetsAction

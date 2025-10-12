@@ -191,10 +191,32 @@ export const reyaPriceProvider: Provider = {
     ): Promise<ReyaProviderResponse> => {
         // Check if message is related to prices before making API calls
         const messageText = _message.content?.text?.toLowerCase() || "";
+        
+        // Documentation/explanation keywords that should NOT trigger price provider
+        const documentationKeywords = [
+            // English
+            "what is", "what's", "explain", "definition", "meaning", "describe",
+            "how does", "how do", "tell me about", "information about",
+            // Russian  
+            "что такое", "что это", "объясни", "расскажи", "что означает",
+            "как работает", "расскажи про", "информация о"
+        ];
+        
+        // Check if this is a documentation/explanation question
+        const isDocumentationQuestion = documentationKeywords.some(keyword => 
+            messageText.includes(keyword)
+        );
+        
+        // If it's a documentation question, don't trigger price provider
+        if (isDocumentationQuestion) {
+            elizaLogger.debug("Documentation question detected, skipping price provider");
+            return { message: "" };
+        }
+        
         const priceKeywords = [
-            'price', 'cost', 'value', 'worth', 'usd', 'dollar', '$',
-            'expensive', 'cheap', 'rate', 'quote', 'current', 'latest',
-            'how much', 'what\'s', 'whats', 'trading at', 'market price'
+            // More specific price-related keywords
+            'price', 'cost', 'how much', 'quote', 'current price', 'price of',
+            'trading at', 'market price', 'rate', 'expensive', 'cheap'
         ];
         
         const isPriceRelated = priceKeywords.some(keyword => 

@@ -13,16 +13,29 @@ export const getAssetsAction: Action = {
     name: "GET_REYA_ASSETS",
     description: "Get asset information from Reya Network including supported tokens, contracts, and asset details",
     
-    validate: async (runtime: IAgentRuntime, message: Memory) => {
-        const text = message.content.text.toLowerCase();
-        return text.includes("asset") || 
-               text.includes("token") || 
-               text.includes("contract") ||
-               text.includes("supported") ||
-               text.includes("collateral") ||
-               text.includes("usdc") ||
-               text.includes("usdt") ||
-               (text.includes("what") && text.includes("available"));
+    validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
+        elizaLogger.info(`🪙 Asset Action Validate: Checking message: "${message.content.text}"`);
+        
+        // Check Smart Dispatch flags from provider first, fallback to executed actions
+        const smartDispatchData = (state as any)?.values?.smartDispatch ??
+            state?.recentActions?.find((action: any) => action.actionName === "SMART_REYA_DISPATCH")?.data;
+        
+        if (smartDispatchData?.allowReyaActions) {
+            elizaLogger.info("✅ Asset Action: Smart Dispatch approved API action");
+            // Continue with original validation logic
+            const text = message.content.text.toLowerCase();
+            return text.includes("asset") || 
+                   text.includes("token") || 
+                   text.includes("contract") ||
+                   text.includes("supported") ||
+                   text.includes("collateral") ||
+                   text.includes("usdc") ||
+                   text.includes("usdt") ||
+                   (text.includes("what") && text.includes("available"));
+        } else {
+            elizaLogger.info("🚫 Asset Action: No approval from Smart Dispatch, rejecting");
+            return false;
+        }
     },
 
     handler: async (

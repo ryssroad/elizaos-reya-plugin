@@ -102,35 +102,43 @@ export const getPricesAction: Action = {
     description: "Get current prices from Reya Network DEX for specific assets or general price overview",
     
     validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
-        // Check for price-related keywords in Russian and English
-        const messageText = message.content.text?.toLowerCase() || "";
-        const priceKeywords = [
-            // English keywords
-            "price", "cost", "worth", "value", "trading", "market", "quote",
-            "how much", "what's the price", "current price", "price of",
+        elizaLogger.info(`💰 Price Action Validate: Checking message: "${message.content.text}"`);
+        
+        // Check Smart Dispatch flags from provider first, fallback to executed actions
+        const smartDispatchData = (state as any)?.values?.smartDispatch ??
+            state?.recentActions?.find((action: any) => action.actionName === "SMART_REYA_DISPATCH")?.data;
+        
+        if (smartDispatchData?.allowReyaActions) {
+            elizaLogger.info("✅ Price Action: Smart Dispatch approved API action");
             
-            // Russian keywords  
-            "цена", "стоимость", "сколько стоит", "цену", "цены", "прайс",
-            "что стоит", "стоит", "сколько", "торги", "котировки"
-        ];
-        
-        const cryptoSymbols = [
-            "btc", "bitcoin", "eth", "ethereum", "sol", "solana", "usdc", "usdt",
-            "hype", "doge", "ada", "matic", "avax", "link", "uni", "aave"
-        ];
-        
-        // Check if message contains price keywords
-        const hasPriceKeyword = priceKeywords.some(keyword => 
-            messageText.includes(keyword)
-        );
-        
-        // Check if message mentions crypto symbols or "reya"
-        const hasCryptoSymbol = cryptoSymbols.some(symbol => 
-            messageText.includes(symbol)
-        ) || messageText.includes("reya");
-        
-        // Validate if it's a price-related query
-        return hasPriceKeyword || hasCryptoSymbol;
+            // When Smart Dispatch approves, validate for price-related content
+            const messageText = message.content.text?.toLowerCase() || "";
+            
+            const priceKeywords = [
+                // English keywords - more specific for actual price queries
+                "price", "cost", "how much", "current price", "price of", "quote",
+                "trading at", "market price", "rate",
+                
+                // Russian keywords - more specific  
+                "цена", "стоимость", "сколько стоит", "цену", "цены", "прайс",
+                "котировки", "курс"
+            ];
+            
+            const hasPriceKeyword = priceKeywords.some(keyword => messageText.includes(keyword));
+            
+            if (hasPriceKeyword) {
+                elizaLogger.info("✅ Price Action: Approved price query by Smart Dispatch");
+                return true;
+            } else {
+                elizaLogger.info("🚫 Price Action: No price keywords found");
+                return false;
+            }
+        } else {
+            elizaLogger.info("🚫 Price Action: No approval from Smart Dispatch, rejecting");
+            return false;
+        }
+        // Unreachable (kept for safety in case of future branches)
+        // return false;
     },
 
     handler: async (

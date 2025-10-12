@@ -15,33 +15,48 @@ export const getMarketsAction: Action = {
     name: "GET_REYA_MARKETS",
     description: "Get market data from Reya Network DEX including active markets, volumes, and trading pairs",
     
-    validate: async (runtime: IAgentRuntime, message: Memory) => {
-        const text = message.content.text.toLowerCase();
+    validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
+        elizaLogger.info(`🏪 Market Action Validate: Checking message: "${message.content.text}"`);
         
-        // Check for market/volume related keywords
-        const marketKeywords = [
-            // English keywords
-            "market", "trading", "pair", "volume", "trade", "activity",
-            "24h", "daily", "liquidity", "turnover", "traded",
+        // Check Smart Dispatch flags from provider first, fallback to executed actions
+        const smartDispatchData = (state as any)?.values?.smartDispatch ??
+            state?.recentActions?.find((action: any) => action.actionName === "SMART_REYA_DISPATCH")?.data;
+        
+        if (smartDispatchData?.allowReyaActions) {
+            elizaLogger.info("✅ Market Action: Smart Dispatch approved API action");
             
-            // Russian keywords  
-            "рынок", "торги", "объем", "торговля", "активность", 
-            "оборот", "ликвидность", "сутки", "суточный"
-        ];
-        
-        const hasMarketKeyword = marketKeywords.some(keyword => text.includes(keyword));
-        const hasReyaKeyword = text.includes("reya");
-        
-        // Additional check for crypto symbols that might indicate volume queries
-        const cryptoSymbols = [
-            "btc", "bitcoin", "eth", "ethereum", "sol", "solana", "usdc", "usdt",
-            "hype", "doge", "ada", "matic", "avax", "link", "uni", "aave"
-        ];
-        
-        const hasCryptoSymbol = cryptoSymbols.some(symbol => text.includes(symbol));
-        
-        // Validate if it's a market/volume-related query
-        return hasMarketKeyword || (hasReyaKeyword && hasCryptoSymbol);
+            // When Smart Dispatch approves, validate for market-related content
+            const text = message.content.text.toLowerCase();
+            const marketKeywords = [
+                // English keywords
+                "market", "trading", "pair", "volume", "trade", "activity",
+                "24h", "daily", "liquidity", "turnover", "traded",
+                // Common user intents
+                "buy", "sell", "swap", "exchange", "list", "listing",
+                
+                // Russian keywords  
+                "рынок", "торги", "объем", "торговля", "активность", 
+                "оборот", "ликвидность", "сутки", "суточный",
+                // Common user intents (ru)
+                "купить", "продать", "обмен", "обменять", "листинг"
+            ];
+            
+            const hasMarketKeyword = marketKeywords.some(keyword => text.includes(keyword));
+            
+            if (hasMarketKeyword) {
+                elizaLogger.info("✅ Market Action: Approved market query by Smart Dispatch");
+                return true;
+            } else {
+                elizaLogger.info("🚫 Market Action: No market keywords found");
+                return false;
+            }
+        } else {
+            elizaLogger.info("🚫 Market Action: No approval from Smart Dispatch, rejecting");
+            return false;
+        }
+
+        // Unreachable (kept for safety in case of future branches)
+        // return false;
     },
 
     handler: async (
